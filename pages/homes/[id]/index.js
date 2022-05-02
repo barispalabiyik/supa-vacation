@@ -1,21 +1,49 @@
 import Image from "next/image";
 import Layout from "@/components/Layout";
+import { useSession } from "next-auth/react";
+import { prisma } from '@/lib/prisma';
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 
-import { PrismaClient } from "@prisma/client";
-
 // Instantiate Prisma Client
-const prisma = new PrismaClient();
+
 
 const ListedHome = (home = null) => {
+  const { data: session } = useSession();
+  const [isOwner, setIsOwner] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
-  // Fallback version
-  if (router.isFallback) {
-    return "Loading...";
-  }
+  const deleteHome = async () => {
+    let toastId;
+    try {
+      toastId = toast.loading("Deleting...");
+      setDeleting(true);
+      // Delete home from DB
+      await axios.delete(`/api/homes/${home.id}`);
+      // Redirect user
+      toast.success("Successfully deleted", { id: toastId });
+      router.push("/homes");
+    } catch (e) {
+      console.log(e);
+      toast.error("Unable to delete home", { id: toastId });
+      setDeleting(false);
+    }
+  };
 
-  console.log(home.image);
+  useEffect(() => {
+    (async () => {
+      if (session?.user) {
+        try {
+          const owner = await axios.get(`/api/homes/${home.id}/owner`);
+          setIsOwner(owner);
+        } catch (e) {
+          setIsOwner(false);
+        }
+      }
+    })();
+  }, []);
+
   return (
     <Layout>
       <div className="max-w-screen-lg mx-auto">
@@ -39,6 +67,29 @@ const ListedHome = (home = null) => {
             </ol>
           </div>
         </div>
+
+        {isOwner ? (
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => router.push(`/homes/${home.id}/edit`)}
+              className="px-4 py-1 border border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white transition rounded-md disabled:text-gray-800 disabled:bg-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Edit
+            </button>
+
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={deleteHome}
+              className="rounded-md border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white focus:outline-none transition disabled:bg-rose-500 disabled:text-white disabled:opacity-50 disabled:cursor-not-allowed px-4 py-1"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        ) : null}
+
         {home?.image && (
           <div className="mt-6 relative aspect-video bg-gray-200 h-[500px] rounded-lg shadow-md overflow-hidden">
             <Image

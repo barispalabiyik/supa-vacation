@@ -1,20 +1,16 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import { decode } from "base64-arraybuffer";
 import { nanoid } from "nanoid";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+
 
 export const config = {
-    api: {
-      bodyParser: {
-        sizeLimit: '10mb',
-      },
+  api: {
+    bodyParser: {
+      sizeLimit: "10mb",
     },
-  };
-  
+  },
+};
 
 export default async function handler(req, res) {
   // Upload image to Supabase
